@@ -1,0 +1,21 @@
+{
+  "name": "dashboard",
+  "version": "1.0.0",
+  "description": "Dashboard and Sign in Application",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "Dashboard",
+    "NodejsDashboard"
+  ],
+  "author": "Asyraf",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^4.18.2",
+    "mysql2": "^3.9.2",
+    "uuid": "^9.0.1"
+  }
+}
