@@ -4,7 +4,8 @@ const mysql = require('mysql2');
 //uuid library
 const {v4:uuidv4} = require('uuid');
 const router = express.Router();
-
+//json web token lib
+const jwt = require('jsonwebtoken');
 //password encryptor and decryptor
 const password_encryptor = require('../password/password');
 
@@ -15,6 +16,29 @@ const connection = mysql.createConnection({
     password: 'root', //User@123
     database: 'dashboard',
 });
+
+//json web token secret key
+const secretKey = 'hello_world';
+
+function json_token_generator(user){
+    const token = jwt.sign(user, secretKey, { expiresIn: '1h' });
+    return token
+}
+
+function verify_token(token){
+    // Verify JWT
+    var decoded = jwt.verify(token, secretKey, (err, decoded) => {
+        if (err) {
+            // Token is invalid or has expired
+            console.error('Invalid token:', err);
+            return 0;
+        }
+        
+        // Token is valid, decoded payload contains the user data
+        console.log('Decoded token:', decoded);
+    });
+    return decoded
+}
 
 connection.connect((err) =>{
     if (err){
@@ -59,7 +83,15 @@ router.post('/create', (req, res) => {
         `;
 
         connection.query(sql_query, [id, email, password, username, getCurrentDateTime(), getCurrentDateTime()], (err, result) => {
-            if (err.code === 'ER_DUP_ENTRY') {
+            if(!err){
+                // Success case
+                res.status(201).json({
+                    message: 'User has been successfully created.',
+                    data: request_data,
+                });
+                //send email notification
+            }
+            else if (err.code === 'ER_DUP_ENTRY') {
                 // Handle the error within the callback
                 res.status(400).json({
                     message: 'Duplicate entry. User with this email already exists.',
@@ -70,13 +102,6 @@ router.post('/create', (req, res) => {
                     message: `${err}`,
                     data: request_data,
                 });
-            }else {
-                // Success case
-                res.status(201).json({
-                    message: 'User has been successfully created.',
-                    data: request_data,
-                });
-                //send email notification
             }
         });
 
@@ -167,6 +192,7 @@ router.post('/login', (req, res) =>{
                   res.status(200).json({
                     message: 'Login successful',
                     data: results[0], // You might want to send user data in the response
+                    token: json_token_generator(results[0])
                   });
                 } else {
                   // Passwords do not match
@@ -201,6 +227,33 @@ router.get('/get_id/:id', (req, res) =>{
         id: user_id,
         name: "Asyraf"
     })
+});
+
+router.post('/logout', (req, res) =>{
+    //check bearer token
+    try{
+        //slice from index 6 until the end
+        const token = req.headers['authorization'].slice(7,)
+        console.log(token);
+        const decoded = verify_token(token);
+        if(decoded != 0){
+            res.json({
+                "message":"Logout successful!",
+            })
+        }
+        else{
+            res.status(400).json({
+                message: 'Token is invalid',
+              });
+        }
+        
+    }catch(e){
+        res.status(400).json({
+            message: 'Error',
+            data: e,
+          });
+    }
+    
 });
 
 module.exports = router;
